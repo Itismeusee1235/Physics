@@ -1,5 +1,6 @@
 This repo contains various physics simulations made in c++
 
-Currentl simulated:
-    Simple Pendulum with damping
+Currently simulated:
+    Simple Pendulum with damping\n
+    
     Double Pendulum
