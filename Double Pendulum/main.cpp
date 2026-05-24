@@ -92,16 +92,32 @@ void drawPoints(SDL_Renderer *render, vector<SDL_Point> p, int r, int g, int b,
   }
 }
 
+void Render(SDL_Renderer *renderer, int c1x, int c1y, int c2x, int c2y, int hx,
+            int hy) {
+
+  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+  drawDisc(renderer, c1x, c1y, 5);
+  // drawPoints(renderer, p1, 255, 0, 0, fade);
+
+  SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+  drawDisc(renderer, c2x, c2y, 5);
+  // drawPoints(renderer, p2, 0, 0, 255, fade);
+
+  SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+  SDL_RenderDrawLine(renderer, hx, hy, c1x, c1y);
+  SDL_RenderDrawLine(renderer, c1x, c1y, c2x, c2y);
+}
+
 int main() {
 
-  bool fade = true;
-  bool dissaper = true;
+  bool fade = false;
+  bool dissaper = false;
 
   double g = 9.8;
   double m1 = 1;
-  double m2 = 1;
-  double l1 = 100;
-  double l2 = 100;
+  double m2 = 5;
+  double l1 = 50;
+  double l2 = 50;
   int maxPoints = 1024;
 
   int hx = 300;
@@ -110,6 +126,15 @@ int main() {
   double timeStep = 0.1;
 
   State s(M_PI / 2, -M_PI / 2.1, 0, 0);
+  State pendulums[10];
+  pendulums[0] = s;
+  for (int i = 1; i < 10; i++) {
+    pendulums[i].theta1 = pendulums[i - 1].theta1;
+    pendulums[i].theta2 = pendulums[i - 1].theta2 + 1e-4;
+
+    pendulums[i].omega1 = pendulums[i - 1].omega1;
+    pendulums[i].omega2 = pendulums[i - 1].omega2;
+  }
 
   if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
     printf("Failed to init SDL, %s", SDL_GetError());
@@ -143,24 +168,38 @@ int main() {
         }
       }
     }
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    SDL_RenderClear(renderer);
 
     int c1x, c1y, c2x, c2y;
     if (simulate) {
-      s = RK4(s, g, l1, l2, m1, m2, 0, timeStep);
-      c1x = hx + (int)(l1 * sin(s.theta1));
-      c1y = hy + (int)(l1 * cos(s.theta1));
+      // s = RK4(s, g, l1, l2, m1, m2, 0, timeStep);
+      // c1x = hx + (int)(l1 * sin(s.theta1));
+      // c1y = hy + (int)(l1 * cos(s.theta1));
+      //
+      // c2x = c1x + (int)(l2 * sin(s.theta2));
+      // c2y = c1y + (int)(l2 * cos(s.theta2));
 
-      c2x = c1x + (int)(l2 * sin(s.theta2));
-      c2y = c1y + (int)(l2 * cos(s.theta2));
+      // p1.push_back({c1x, c1y});
+      // p2.push_back({c2x, c2y});
+      for (auto &i : pendulums) {
+        i = RK4(i, g, l1, l2, m1, m2, 0, timeStep);
+        c1x = hx + (int)(l1 * sin(i.theta1));
+        c1y = hy + (int)(l1 * cos(i.theta1));
 
-      p1.push_back({c1x, c1y});
-      p2.push_back({c2x, c2y});
+        c2x = c1x + (int)(l2 * sin(i.theta2));
+        c2y = c1y + (int)(l2 * cos(i.theta2));
+        Render(renderer, c1x, c1y, c2x, c2y, hx, hy);
+      }
     } else {
-      c1x = hx + (int)(l1 * sin(s.theta1));
-      c1y = hy + (int)(l1 * cos(s.theta1));
+      for (auto s : pendulums) {
+        c1x = hx + (int)(l1 * sin(s.theta1));
+        c1y = hy + (int)(l1 * cos(s.theta1));
 
-      c2x = c1x + (int)(l2 * sin(s.theta2));
-      c2y = c1y + (int)(l2 * cos(s.theta2));
+        c2x = c1x + (int)(l2 * sin(s.theta2));
+        c2y = c1y + (int)(l2 * cos(s.theta2));
+        Render(renderer, c1x, c1y, c2x, c2y, hx, hy);
+      }
     }
 
     if (p1.size() > maxPoints && dissaper) {
@@ -169,21 +208,6 @@ int main() {
     if (p2.size() > maxPoints && dissaper) {
       p2.erase(p2.begin());
     }
-
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-    SDL_RenderClear(renderer);
-
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-    drawDisc(renderer, c1x, c1y, 5);
-    drawPoints(renderer, p1, 255, 0, 0, fade);
-
-    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
-    drawDisc(renderer, c2x, c2y, 5);
-    drawPoints(renderer, p2, 0, 0, 255, fade);
-
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderDrawLine(renderer, hx, hy, c1x, c1y);
-    SDL_RenderDrawLine(renderer, c1x, c1y, c2x, c2y);
 
     SDL_RenderPresent(renderer);
 
